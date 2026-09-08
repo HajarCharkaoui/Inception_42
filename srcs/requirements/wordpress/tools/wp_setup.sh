@@ -2,8 +2,8 @@
 set -e
 
 # Tsenna MariaDB hta tkoun online
-echo "Waiting for MariaDB..."
-until mysqladmin ping -h mariadb -u "${MYSQL_USER}" -p"${MYSQL_PASSWORD}" --silent; do
+echo "Waiting for MariaDB to be ready..."
+while ! mariadb -h mariadb -u "${MYSQL_USER}" -p"${MYSQL_PASSWORD}" -e "SELECT 1;" >/dev/null 2>&1; do
     sleep 2
 done
 echo "MariaDB is ready!"
