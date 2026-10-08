@@ -32,11 +32,14 @@ COPY conf/www.conf /etc/php/8.2/fpm/pool.d/www.conf
 COPY tools/wp_setup.sh /usr/local/bin/wp_setup.sh
 RUN chmod +x /usr/local/bin/wp_setup.sh
 
-# 7. Expose
+# 7. Install Redis Php
+RUN apt-get update -y && apt-get install -y php-redis
+
+# 8. Expose
 EXPOSE 9000
 
-# 8. Workdir
+# 9. Workdir
 WORKDIR /var/www/html
 
-# 9. Entrypoint
+# 10. Entrypoint
 ENTRYPOINT ["/usr/local/bin/wp_setup.sh"]

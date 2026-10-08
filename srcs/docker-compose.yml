@@ -1,56 +1,77 @@
-version: '3.8'
-
 services:
   mariadb:
+  # How do i create the MariaDB image ? so i use the Dockerfile located in ./requirements/mariadb
     container_name: mariadb
     build:
       context: ./requirements/mariadb
       dockerfile: Dockerfile
+  # Give the image name
     image: mariadb
+  # Configure the contnainer
     restart: always
+  # Add environement variables
     env_file:
       - .env
+  # Create a volume where we can store data
     volumes:
       - db_data:/var/lib/mysql
+  # Declare the internal port for this service
+    expose: 
+      - "3306"
+  # Put MariaDB on a network , so it can communicate with other services 
     networks:
       - inception_network
+  redis:
+    container_name: redis
+    build:
+      context: ./requirements/bonus/redis
+      dockerfile: Dockerfile
+    image: redis
+    restart: always
     expose:
-      - "3306"
-
+      - "6379"
+    networks:
+      - inception_network
+ 
+  
   wordpress:
     container_name: wordpress
     build:
       context: ./requirements/wordpress
       dockerfile: Dockerfile
     image: wordpress
-    restart: always
     depends_on:
       - mariadb
+      - redis
+    restart: always
     env_file:
       - .env
     volumes:
       - wp_data:/var/www/html
+    expose: 
+      - "9000"
     networks:
       - inception_network
-    expose:
-      - "9000"
-
+    
   nginx:
     container_name: nginx
     build:
       context: ./requirements/nginx
       dockerfile: Dockerfile
     image: nginx
-    restart: always
     depends_on:
       - wordpress
-    ports:
-      - "443:443"
+    restart: always
+    env_file:
+      - .env
     volumes:
       - wp_data:/var/www/html
+    # katerbet lhost m3a nginx
+    ports: 
+      - "443:443"
     networks:
       - inception_network
-
+    
 networks:
   inception_network:
     driver: bridge
@@ -61,10 +82,14 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/hacharka/data/wordpress
+      device: /workspaces/data/wordpress
+      # device: /home/hacharka/data/wordpress
   db_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/hacharka/data/mariadb
+      device: /workspaces/data/mariadb
+      # device: /home/hacharka/data/mariadb
+
+# healthcheck fl wordpress ol fl mariadb  

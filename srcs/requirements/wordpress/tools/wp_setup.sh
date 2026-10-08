@@ -43,6 +43,13 @@ if [ ! -f "wp-config.php" ]; then
         --role=author \
         --user_pass="${WP_USER_PASSWORD}" \
         --allow-root
+    # add the connection constants to wp-config.php
+    wp config set WP_REDIS_HOST redis --allow-root
+    wp config set WP_REDIS_PORT 6379 --raw --allow-root
+    wp config set WP_CACHE true --raw --allow-root
+    # install and active the Redis Object Cache plugin:
+    wp plugin install redis-cache --activate --allow-root
+    wp redis enable --allow-root
 
     echo "WordPress configured successfully!"
 fi
