@@ -1,6 +1,6 @@
 NAME = inception
 COMPOSE_FILE = srcs/docker-compose.yml
-DATA_DIR = /workspaces/data
+DATA_DIR = /home/hacharka/data
 
 all: up
 

@@ -21,6 +21,12 @@ services:
   # Put MariaDB on a network , so it can communicate with other services 
     networks:
       - inception_network
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping","-h",  "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
  
   
   wordpress:
@@ -30,8 +36,10 @@ services:
       dockerfile: Dockerfile
     image: wordpress
     depends_on:
-      - mariadb
-      - redis
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: always
     env_file:
       - .env
@@ -72,6 +80,12 @@ services:
       - "6379"
     networks:
       - inception_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
   
   ftp:
     container_name:  ftp
@@ -102,6 +116,14 @@ services:
       - "8080:8080"
     networks:
       - inception_network
+  website:
+    build: requirements/bonus/website
+    container_name: website
+    restart: on-faillor
+    networks:
+      - inception_network
+    expose:
+      - "3000"
 
 
 networks:
