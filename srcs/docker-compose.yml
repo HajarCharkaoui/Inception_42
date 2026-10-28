@@ -119,7 +119,7 @@ services:
   website:
     build: requirements/bonus/website
     container_name: website
-    restart: on-faillor
+    restart: on-failure
     networks:
       - inception_network
     expose:
@@ -136,14 +136,10 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /workspaces/data/wordpress
-      # device: /home/hacharka/data/wordpress
+      device: /home/hacharka/data/wordpress
   db_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /workspaces/data/mariadb
-      # device: /home/hacharka/data/mariadb
-
-# healthcheck fl wordpress ol fl mariadb  
+      device: /home/hacharka/data/mariadb 

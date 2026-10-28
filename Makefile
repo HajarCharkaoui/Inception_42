@@ -13,7 +13,7 @@ build:
 	docker compose -f $(COMPOSE_FILE) build
 
 down:
-	docker compose -f $(COMPOSE_FILE) down
+	docker compose -f $(COMPOSE_FILE) down -v 
 
 clean: down
 	docker system prune -a --force
