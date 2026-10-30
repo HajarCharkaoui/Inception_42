@@ -1,7 +1,0 @@
-# Ignore envirement secrets
-srcs/.env
-
-# Ignore temporary data
-*.swap
-*.o
-.DS_Store
