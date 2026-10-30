@@ -1,27 +1,31 @@
 #!/bin/bash
 set -e
 
+
 mkdir -p /run/mysqld
-chown -R mysql:mysql /run/mysqld
-chown -R mysql:mysql /var/lib/mysql
+chown -R mysql:mysql /run/mysqld /var/lib/mysql
 
 
-if [ ! -d "/var/lib/mysql/mysql" ]; then
+DB_PASSWORD=$(cat /run/secrets/db_password | tr -d '\r\n')
+DB_ROOT_PASSWORD=$(cat /run/secrets/db_root_password | tr -d '\r\n')
+
+
+if [ ! -d "/var/lib/mysql/${MYSQL_DATABASE}" ]; then
+    echo "Initializing database..."
     mysql_install_db --user=mysql --datadir=/var/lib/mysql > /dev/null
-fi
 
 
-SQL_INIT="/tmp/init.sql"
-
-cat << EOF > ${SQL_INIT}
+    mysqld --user=mysql --bootstrap << EOF
 FLUSH PRIVILEGES;
 CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
-CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
-ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
 FLUSH PRIVILEGES;
 EOF
+fi
 
-echo "Starting MariaDB with init file..."
+unset DB_PASSWORD
+unset DB_ROOT_PASSWORD
 
-exec mysqld_safe --datadir=/var/lib/mysql --init-file=${SQL_INIT}
+exec mysqld

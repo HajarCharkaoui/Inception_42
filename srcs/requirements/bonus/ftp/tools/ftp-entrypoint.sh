@@ -2,6 +2,7 @@
 set -e
 
 mkdir -p /var/run/vsftpd/empty
+FTP_PASS=$(cat /run/secrets/ftp_user_password | tr -d '\r\t')
 
 if ! id "$FTP_USER" &>/dev/null; then
     useradd -m -s /bin/bash "$FTP_USER"

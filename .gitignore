@@ -1,6 +1,11 @@
 # Ignore envirement secrets
 srcs/.env
 
+# Ignore secrets folder
+srcs/secrets/
+secrets/
+*.txt
+
 # Ignore temporary data
 *.swap
 *.o
