@@ -308,15 +308,13 @@ docker exec -it <container_name> sh
 
 ### AI usage
 
-AI tools (including ChatGPT) were used as learning and support tools during the project for:
+AI tools were used as learning and support tools during the project for:
 
 - Explaining Docker concepts such as images, containers, layers, volumes, networks, namespaces, and port mapping.
 - Understanding the roles and interactions of Nginx, WordPress, PHP-FPM, MariaDB, and the bonus services.
 - Helping investigate configuration and runtime errors in Dockerfiles, Docker Compose, shell scripts, and service networking.
 - Reviewing command usage and helping structure troubleshooting steps.
-- Drafting and improving this README.
 
-AI-generated explanations and suggestions were treated as assistance, not as a replacement for understanding or testing. The project configuration, implementation choices, and final behavior must be reviewed and validated by the project author.
 
 ---
 

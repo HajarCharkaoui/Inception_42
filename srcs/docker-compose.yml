@@ -19,8 +19,8 @@ services:
     volumes:
       - db_data:/var/lib/mysql
   # Declare the internal port for this service
-    expose: 
-      - "3306"
+    # expose: 
+    #   - "3306"
   # Put MariaDB on a network , so it can communicate with other services 
     networks:
       - inception_network
@@ -52,8 +52,8 @@ services:
       - wp_user_password
     volumes:
       - wp_data:/var/www/html
-    expose: 
-      - "9000"
+    # expose: 
+    #   - "9000"
     networks:
       - inception_network
     
@@ -83,8 +83,8 @@ services:
       dockerfile: Dockerfile
     image: redis
     restart: on-failure
-    expose:
-      - "6379"
+    # expose:
+    #   - "6379"
     networks:
       - inception_network
     healthcheck:
@@ -108,11 +108,11 @@ services:
     ports:
       - "21:21"
       - "21000-21005:21000-21005"
-    volumes:
+    volumes  :
       - wp_data:/var/www/html
     networks:
       - inception_network
-  adminer:
+  adminer:    
     container_name: adminer
     build:
       context: ./requirements/bonus/adminer
@@ -131,8 +131,8 @@ services:
     restart: on-failure
     networks:
       - inception_network
-    expose:
-      - "3000"
+    # expose:
+    #   - "3000"
 
 
 networks:

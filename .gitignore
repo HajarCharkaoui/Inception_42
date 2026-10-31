@@ -1,10 +1,10 @@
 # Ignore envirement secrets
-srcs/.env
+# srcs/.env
 
-# Ignore secrets folder
-srcs/secrets/
-secrets/
-*.txt
+# # Ignore secrets folder
+# srcs/secrets/
+# secrets/
+# *.txt
 
 # Ignore temporary data
 *.swap
