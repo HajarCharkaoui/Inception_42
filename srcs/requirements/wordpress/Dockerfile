@@ -29,7 +29,7 @@ RUN chmod +x /usr/local/bin/wp_setup.sh
 
 RUN apt-get update -y && apt-get install -y php-redis
 
-EXPOSE 9000
+# EXPOSE 9000
 
 WORKDIR /var/www/html
 

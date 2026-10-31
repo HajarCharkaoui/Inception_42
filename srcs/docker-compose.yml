@@ -25,7 +25,7 @@ services:
     networks:
       - inception_network
     healthcheck:
-      test: ["CMD", "mariadb-admin", "ping","-h",  "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -u root -p$$(cat /run/secrets/db_root_password)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -33,7 +33,7 @@ services:
  
   
   wordpress:
-    container_name: wordpress
+    container_name: wordpresss
     build:
       context: ./requirements/wordpress
       dockerfile: Dockerfile
@@ -52,8 +52,8 @@ services:
       - wp_user_password
     volumes:
       - wp_data:/var/www/html
-    # expose: 
-    #   - "9000"
+    expose: 
+      - "9000"
     networks:
       - inception_network
     
@@ -70,7 +70,6 @@ services:
       - .env
     volumes:
       - wp_data:/var/www/html
-    # katerbet lhost m3a nginx
     ports: 
       - "443:443"
     networks:
