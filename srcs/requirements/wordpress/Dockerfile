@@ -28,8 +28,9 @@ COPY tools/wp_setup.sh /usr/local/bin/wp_setup.sh
 RUN chmod +x /usr/local/bin/wp_setup.sh
 
 RUN apt-get update -y && apt-get install -y php-redis
+RUN apt-get update && apt-get install -y netcat-openbsd
 
-# EXPOSE 9000
+EXPOSE 9000
 
 WORKDIR /var/www/html
 

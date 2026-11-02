@@ -1,27 +1,18 @@
 services:
   mariadb:
-  # How do i create the MariaDB image ? so i use the Dockerfile located in ./requirements/mariadb
     container_name: mariadb
     build:
       context: ./requirements/mariadb
       dockerfile: Dockerfile
-  # Give the image name
     image: mariadb
-  # Configure the contnainer
     restart: on-failure
-  # Add environement variables
     env_file:
       - .env
     secrets:
       - db_password
       - db_root_password
-  # Create a volume where we can store data
     volumes:
       - db_data:/var/lib/mysql
-  # Declare the internal port for this service
-    # expose: 
-    #   - "3306"
-  # Put MariaDB on a network , so it can communicate with other services 
     networks:
       - inception_network
     healthcheck:
@@ -33,7 +24,7 @@ services:
  
   
   wordpress:
-    container_name: wordpresss
+    container_name: wordpress
     build:
       context: ./requirements/wordpress
       dockerfile: Dockerfile
@@ -52,10 +43,14 @@ services:
       - wp_user_password
     volumes:
       - wp_data:/var/www/html
-    expose: 
-      - "9000"
     networks:
       - inception_network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9000 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
     
   nginx:
     container_name: nginx
@@ -64,7 +59,8 @@ services:
       dockerfile: Dockerfile
     image: nginx
     depends_on:
-      - wordpress
+      wordpress:
+        condition: service_healthy
     restart: on-failure
     env_file:
       - .env
@@ -82,8 +78,6 @@ services:
       dockerfile: Dockerfile
     image: redis
     restart: on-failure
-    # expose:
-    #   - "6379"
     networks:
       - inception_network
     healthcheck:
@@ -130,8 +124,6 @@ services:
     restart: on-failure
     networks:
       - inception_network
-    # expose:
-    #   - "3000"
 
 
 networks:
