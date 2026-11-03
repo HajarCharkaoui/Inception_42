@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eu
 
 mkdir -p /var/run/vsftpd/empty
 FTP_PASS=$(cat /run/secrets/ftp_user_password | tr -d '\r\t')
@@ -14,5 +14,7 @@ fi
 usermod -aG www-data "$FTP_USER"
 chown -R www-data:www-data /var/www/html
 chmod -R 775 /var/www/html
+
+unset FTP_PASS
 
 exec /usr/sbin/vsftpd /etc/vsftpd.conf

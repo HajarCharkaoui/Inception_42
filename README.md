@@ -131,10 +131,13 @@ Do not remove the persistent volumes or host data directories when you want to k
 .
 ├── Makefile
 ├── README.md
+├── USER_DOC.md
+├── DEV_DOC.md
+├── .gitignore
 └── srcs/
-    ├── .env                    # Local environment configuration (not committed)
-    ├── docker-compose.yml      # Services, networks, volumes and secrets
-    ├── secrets/                # Sensitive credential files (not committed)
+    ├── .env
+    ├── docker-compose.yml
+    ├── secrets/
     │   ├── credentials.txt
     │   ├── db_password.txt
     │   ├── db_root_password.txt
@@ -146,18 +149,35 @@ Do not remove the persistent volumes or host data directories when you want to k
         │   ├── conf/
         │   ├── tools/
         │   │   └── mariadb_setup.sh
+        │   ├── .dockerignore
         │   └── Dockerfile
         ├── nginx/
+        │   ├── conf/
+        │   ├── .dockerignore
+        │   └── Dockerfile
         ├── wordpress/
         │   ├── conf/
         │   ├── tools/
         │   │   └── wp_setup.sh
+        │   ├── .dockerignore
         │   └── Dockerfile
         └── bonus/
             ├── adminer/
+            │   ├── tools/
+            │   ├── .dockerignore
+            │   └── Dockerfile
             ├── ftp/
+            │   ├── conf/
+            │   ├── tools/
+            │   ├── .dockerignore
+            │   └── Dockerfile
             ├── redis/
+            │   ├── .dockerignore
+            │   └── Dockerfile
             └── website/
+                ├── .dockerignore
+                ├── Dockerfile
+                └── index.html
 ```
 
 The `conf/` directories contain service configuration, `tools/` contains setup scripts, and each service's `Dockerfile` defines how its image is built. The bonus directories contain the additional service configurations and related files.

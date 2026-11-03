@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eu
 
 MYSQL_PASSWORD=$(cat /run/secrets/db_password | tr -d '\r\n')
 WP_ADMIN_PASSWORD=$(cat /run/secrets/wp_admin_password | tr -d '\r\n')
@@ -42,6 +42,10 @@ if [ ! -f "wp-config.php" ]; then
 
     echo "WordPress configured successfully!"
 fi
+
+unset MYSQL_PASSWORD
+unset WP_ADMIN_PASSWORD
+unset WP_USER_PASSWORD
 
 chown -R www-data:www-data /var/www/html
 

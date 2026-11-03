@@ -203,7 +203,7 @@ docker inspect <container>     # full configuration of a container
 Useful checks:
 
 ```bash
-docker exec -it mariadb mariadb -u <db_user> -p      # open a SQL session
+docker exec -it mariadb mysql -u <db_user> -p      # open a SQL session
 docker exec -it redis redis-cli ping                 # expect PONG
 docker exec -it nginx nginx -t                       # test NGINX config syntax
 docker exec -it nginx nginx -s reload                # reload NGINX config

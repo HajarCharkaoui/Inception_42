@@ -16,7 +16,7 @@ services:
     networks:
       - inception_network
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -u root -p$$(cat /run/secrets/db_root_password)"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -119,7 +119,9 @@ services:
     networks:
       - inception_network
   website:
-    build: requirements/bonus/website
+    build:
+      context: ./requirements/bonus/website
+      dockerfile: Dockerfile
     container_name: website
     restart: on-failure
     networks:
