@@ -1,296 +1,370 @@
 # Inception
+
 *This project has been created as part of the 42 curriculum by hacharka.*
+
 ## Description
 
-**Inception** is a system administration project from the 42 curriculum. Its goal is to build a small infrastructure using Docker and Docker Compose, with each main service running in its own container.
+**Inception** is a system administration project from the 42 curriculum. Its goal is to build a small infrastructure using Docker and Docker Compose, with each service running in its own container.
 
-The infrastructure is designed around a WordPress website:
+The infrastructure hosts a WordPress website and includes the following services:
 
-- **Nginx** is the web server and the only public entry point. It receives HTTPS requests and forwards PHP requests to WordPress through PHP-FPM.
-- **WordPress** is the content management system (CMS) used to serve and manage the website.
-- **MariaDB** stores the WordPress data in a relational database.
-- The services communicate through a dedicated Docker network.
-- Persistent data is stored outside the containers so that recreating a container does not erase the website or database.
+- **Nginx:** Web server and the only public entry point. Handles HTTPS requests and forwards PHP requests to WordPress.
+- **WordPress:** Content management system (CMS) used to create and manage the website.
+- **MariaDB:** Relational database used to store WordPress data.
 
-The repository also contains bonus service directories:
+The project also includes bonus services:
 
-- **Adminer** — a web interface for managing the database.
-- **FTP** — a file-transfer service for accessing the WordPress files.
-- **Redis** — an in-memory data store that can be used as a WordPress object cache.
-- **Website** — an additional website service.
+- **Redis:** In-memory cache used to improve WordPress performance.
+- **FTP:** File-transfer service for accessing WordPress files.
+- **Adminer:** Web interface for managing the database.
+- **Website:** An additional website service.
 
-The actual services started by Compose, their published ports, and their dependencies are defined in `srcs/docker-compose.yml`.
+Services communicate through a dedicated Docker network, and persistent data is stored outside the containers to survive container recreation.
 
-## Project description
+The services, networks, volumes, and dependencies are defined in `srcs/docker-compose.yml`.
 
-### Architecture
+## Architecture
 
-The project follows a multi-container architecture. Each service has its own responsibility and is built from its own Dockerfile where applicable.
+The project follows a multi-container architecture, where each service has its own responsibility.
+
+### Infrastructure diagram
 
 ```text
-                         Host machine
-                              |
-                         HTTPS :443
-                              |
-                         [  Nginx  ]
-                              |
-                       FastCGI :9000
-                              |
-                         [ WordPress ]
-                              |
-                        MySQL :3306
-                              |
-                         [ MariaDB ]
+                  Host Machine
+                       |
+                  HTTPS :443
+                       |
+                    Nginx
+                       |
+                 FastCGI :9000
+                       |
+                   WordPress
+                       |
+                  MySQL :3306
+                       |
+                    MariaDB
 
-             All application services communicate
-                through the Docker network.
+          All services communicate through
+             a dedicated Docker network.
 ```
 
-The expected request flow is:
+### Request flow
 
-1. A user opens the website using the configured domain name over HTTPS.
-2. Nginx receives the request on port `443`.
-3. Nginx serves static files directly when appropriate.
-4. When the request requires PHP, Nginx forwards it to the WordPress PHP-FPM service on port `9000`.
-5. WordPress connects to MariaDB on port `3306` using the database service name as its hostname.
-6. MariaDB reads or writes persistent database data.
+1. A user accesses the website through its domain name using HTTPS.
+2. Nginx receives the request on port 443.
+3. Nginx serves static files or forwards PHP requests to WordPress through PHP-FPM on port 9000.
+4. WordPress communicates with MariaDB on port 3306.
+5. MariaDB reads or writes data in persistent storage.
 
-Inside a user-defined Docker network, containers can reach each other using their Compose service names. For example, WordPress can use `mariadb:3306` to connect to the database. The service name is resolved by Docker's internal DNS; it is not a public hostname.
+Containers communicate using their Compose service names. For example, WordPress connects to MariaDB using `mariadb:3306`. Docker's internal DNS resolves the service name.
 
-### Docker: main design choices
+## Technical Concepts
 
-**Docker** packages an application and its dependencies into an image. A container is a running instance of an image. Containers isolate processes and their environments while sharing the host machine's kernel.
+### Docker and Virtual Machines
 
-This project uses Docker because it makes the infrastructure reproducible and separates services into independent components. Each service can be built, started, stopped, inspected, and replaced independently.
+Docker allows applications and their dependencies to run in isolated containers.
 
-The main design choices are:
-
-- **One service per container:** Nginx, WordPress/PHP-FPM, and MariaDB have separate responsibilities and separate containers.
-- **Docker Compose:** the infrastructure is described in one YAML file, making services, networks, volumes, environment configuration, and dependencies easier to manage.
-- **A dedicated bridge network:** application containers communicate privately using service names.
-- **Persistent storage:** database and WordPress files are stored in persistent storage rather than relying on a container's writable layer.
-- **Nginx as the public entry point:** browser traffic reaches the infrastructure through HTTPS on port `443`; backend service ports are used for internal communication.
-- **Secrets for sensitive credentials:** passwords are kept in files under `srcs/secrets/` and are intended to be provided to containers as Docker secrets rather than committed as ordinary configuration values.
-- **Environment variables for configuration:** non-secret settings and values needed to configure services are defined in `srcs/.env`. The `.env` file must not be committed to the repository.
-
-### Virtual Machines vs Docker
-
-| Virtual Machines | Docker containers |
+| Virtual Machines | Docker Containers |
 |---|---|
-| Each VM runs its own guest operating system and kernel. | Containers share the host kernel. |
-| A hypervisor virtualizes hardware for each VM. | The container runtime isolates processes and resources using Linux kernel features. |
-| Usually requires more memory and storage. | Usually lighter and faster to start. |
-| Useful when a separate operating system or kernel is required. | Useful for packaging and isolating applications and their dependencies. |
-| Provides a stronger OS-level separation boundary in many configurations. | Provides process and resource isolation, but is not the same security boundary as a separate VM. |
+| Run a separate guest operating system. | Share the host operating system kernel. |
+| Require a hypervisor. | Use container runtimes and Linux kernel features. |
+| Generally consume more resources. | Generally lightweight and faster to start. |
+| Provide separate operating system environments. | Provide process and resource isolation. |
 
-In this project, Docker is suitable because the services need separate environments and lifecycles, not separate guest operating systems.
+Docker is suitable for this project because each service needs an independent environment without requiring a separate operating system.
 
-### Secrets vs Environment Variables
+### Docker Network: Bridge vs Host
 
-| Docker secrets | Environment variables |
+Docker provides different network modes that determine how containers communicate with other containers and the host machine.
+
+| Bridge Network | Host Network |
 |---|---|
-| Intended for sensitive values such as passwords and private keys. | Convenient for ordinary configuration such as database names, usernames, and domain names. |
-| In Docker Compose, a granted secret is made available to a service as a file, normally under `/run/secrets/`. | Values are injected into the process environment. |
-| A service reads the secret from the mounted file. | A service reads the value from its environment. |
-| Avoids placing the secret directly in the Compose environment configuration. | Environment values may be exposed through container inspection, process diagnostics, or logs if handled carelessly. |
+| Creates an isolated network for containers. | Shares the host machine's network namespace. |
+| Containers have their own network interfaces and IP addresses. | Containers use the host's network interfaces and IP address. |
+| Containers on the same user-defined network can communicate using service names through Docker DNS. | Containers communicate through the host's network stack. |
+| Port mapping (`-p`) is used to expose container ports to the host. | Port mapping is unnecessary and generally ignored. |
+| Provides network isolation between containers and the host. | Removes network namespace isolation between the container and host. |
 
-This project separates sensitive credentials into `srcs/secrets/` and uses `srcs/.env` for configuration. The Compose file must explicitly declare and grant each secret to the services that need it. A secret file should never be copied into a public Git repository.
+**Network configuration in this project:**
 
-> **Important:** Docker Compose secrets provided through local file sources are mounted as files inside containers. They should not be confused with an encrypted secrets-management service. Protect the source files with appropriate filesystem permissions and keep them out of Git.
+This project uses a dedicated user-defined bridge network to allow containers to communicate privately.
 
-### Docker Network vs Host Network
+For example:
+- WordPress connects to MariaDB using `mariadb:3306`.
+- Nginx forwards PHP requests to WordPress using `wordpress:9000`.
+- Docker DNS resolves service names to their corresponding container IP addresses.
 
-| Bridge / user-defined Docker network | Host network |
+Inside a container, `localhost` refers to that same container, not another container or the host machine.
+
+### Docker Volumes and Bind Mounts
+
+Both mechanisms allow data to persist outside a container.
+
+| Docker Volumes | Bind Mounts |
 |---|---|
-| Containers have network interfaces in an isolated network namespace. | The container shares the host's network namespace. |
-| Containers on the same user-defined network can communicate using service names through Docker DNS. | Services use the host's network stack directly. |
-| Ports can be published to make selected container ports reachable from the host. | Port publishing is generally unnecessary and is not used in the same way. |
-| Provides useful network separation between the containers and the host. | Reduces network isolation and can create port conflicts with host services. |
+| Managed by Docker. | Host directory selected by the user. |
+| Stored in Docker's storage area. | Stored at a specific host path. |
+| Managed using Docker commands. | Files can be accessed directly from the host. |
 
-This project uses a dedicated Docker network so that services such as WordPress and MariaDB can communicate privately. WordPress connects to `mariadb:3306`; it does not use `localhost` for the MariaDB container. Inside a container, `localhost` refers to that same container.
+This project uses **Bind Mounts** for persistent WordPress and MariaDB data:
 
-### Docker Volumes vs Bind Mounts
+- WordPress: `/home/hacharka/data/wordpress`
+- MariaDB: `/home/hacharka/data/mariadb`
 
-| Docker volumes | Bind mounts |
-|---|---|
-| Managed by Docker. | Map a specific host filesystem path into a container. |
-| Created and managed independently of a particular host directory chosen by the user. | The host path is explicitly selected in the Compose configuration. |
-| Convenient for persistent application data without depending on a fixed host path. | Useful when the project needs direct access to files at a known host location. |
-| Can be inspected and managed with Docker volume commands. | Files can also be accessed directly from the host. |
+These directories are mounted inside their respective containers.
 
-Persistent WordPress and MariaDB data must survive container recreation. Check the `volumes` section of `srcs/docker-compose.yml` for the exact storage type and host paths configured in this checkout. The container paths commonly used by these services are:
+### Environment Variables and Secrets
 
-- WordPress files: `/var/www/html`
-- MariaDB data: `/var/lib/mysql`
+The project separates configuration values from sensitive credentials.
 
-Do not remove the persistent volumes or host data directories when you want to keep the website and database.
+- **Environment variables:** Used for configuration such as domain names, database names, and usernames.
+- **Secrets:** Used for sensitive information such as passwords.
 
-### Repository structure
+Configuration is stored in `srcs/.env`, while sensitive credentials are stored in `srcs/secrets/`.
+
+Secret files and environment files containing credentials must not be committed to Git.
+
+## Repository Structure
 
 ```text
 .
+├── srcs/
+│   ├── requirements/
+│   │   ├── bonus/
+│   │   │   ├── adminer/
+│   │   │   ├── ftp/
+│   │   │   ├── redis/
+│   │   │   └── website/
+│   │   │
+│   │   ├── mariadb/
+│   │   │   ├── conf/
+│   │   │   ├── tools/
+│   │   │   │   └── mariadb_setup.sh
+│   │   │   ├── .dockerignore
+│   │   │   └── Dockerfile
+│   │   │
+│   │   ├── nginx/
+│   │   │   ├── conf/
+│   │   │   │   └── nginx.conf
+│   │   │   ├── .dockerignore
+│   │   │   └── Dockerfile
+│   │   │
+│   │   └── wordpress/
+│   │       ├── conf/
+│   │       ├── tools/
+│   │       │   └── wp_setup.sh
+│   │       ├── .dockerignore
+│   │       └── Dockerfile
+│   │
+│   ├── secrets/
+│   │   ├── credentials.txt
+│   │   ├── db_password.txt
+│   │   ├── db_root_password.txt
+│   │   ├── ftp_user_password.txt
+│   │   ├── wp_admin_password.txt
+│   │   └── wp_user_password.txt
+│   │
+│   ├── .env
+│   └── docker-compose.yml
+│
+├── .gitignore
+├── DEV_DOC.md
 ├── Makefile
 ├── README.md
-├── USER_DOC.md
-├── DEV_DOC.md
-├── .gitignore
-└── srcs/
-    ├── .env
-    ├── docker-compose.yml
-    ├── secrets/
-    │   ├── credentials.txt
-    │   ├── db_password.txt
-    │   ├── db_root_password.txt
-    │   ├── ftp_user_password.txt
-    │   ├── wp_admin_password.txt
-    │   └── wp_user_password.txt
-    └── requirements/
-        ├── mariadb/
-        │   ├── conf/
-        │   ├── tools/
-        │   │   └── mariadb_setup.sh
-        │   ├── .dockerignore
-        │   └── Dockerfile
-        ├── nginx/
-        │   ├── conf/
-        │   ├── .dockerignore
-        │   └── Dockerfile
-        ├── wordpress/
-        │   ├── conf/
-        │   ├── tools/
-        │   │   └── wp_setup.sh
-        │   ├── .dockerignore
-        │   └── Dockerfile
-        └── bonus/
-            ├── adminer/
-            │   ├── tools/
-            │   ├── .dockerignore
-            │   └── Dockerfile
-            ├── ftp/
-            │   ├── conf/
-            │   ├── tools/
-            │   ├── .dockerignore
-            │   └── Dockerfile
-            ├── redis/
-            │   ├── .dockerignore
-            │   └── Dockerfile
-            └── website/
-                ├── .dockerignore
-                ├── Dockerfile
-                └── index.html
+└── USER_DOC.md
 ```
 
-The `conf/` directories contain service configuration, `tools/` contains setup scripts, and each service's `Dockerfile` defines how its image is built. The bonus directories contain the additional service configurations and related files.
+Each service directory contains its Dockerfile and the configuration or scripts required to build and run the service.
 
 ## Instructions
 
 ### Prerequisites
 
-Before starting, make sure you have:
+Make sure you have:
 
-- A Linux environment or a compatible virtual machine.
+- Linux environment or a compatible virtual machine.
 - Docker Engine installed and running.
-- Docker Compose v2 (`docker compose`).
-- `make`.
-- Permission to run Docker commands, either directly or through `sudo`.
+- Docker Compose v2.
+- Make.
+- Sufficient permissions to execute Docker commands.
 
 ### Configuration
 
-1. Clone the repository:
-
-   ```bash
-   git clone <repository-url>
-   cd Inception_42
-   ```
-
-2. Create `srcs/.env` using the variables expected by `srcs/docker-compose.yml` and the service configuration files. Typical values include:
-
-   ```dotenv
-   DOMAIN_NAME=hacharka.42.fr
-   MYSQL_DATABASE=wordpress
-   MYSQL_USER=wp_user
-   MYSQL_PASSWORD=change_this_password
-   MYSQL_ROOT_PASSWORD=change_this_root_password
-   ```
-
-   Use the exact variable names referenced by your Compose file and scripts. Do not use the example passwords in a real environment.
-
-3. Create the secret files expected by the Compose file under `srcs/secrets/`. The repository structure currently includes:
-
-   - `credentials.txt`
-   - `db_password.txt`
-   - `db_root_password.txt`
-   - `ftp_user_password.txt`
-   - `wp_admin_password.txt`
-   - `wp_user_password.txt`
-
-   Put the appropriate credential in each file, following the format read by the corresponding setup script. Do not add real credentials to Git.
-
-4. Configure the domain on the host machine so that it resolves to the machine running the project. For a local Linux setup, add an entry to `/etc/hosts` (replace the domain if your `.env` uses another value):
-
-   ```text
-   127.0.0.1  hacharka.42.fr
-   ```
-
-   If Docker runs inside a VM or remote environment, use the appropriate reachable IP address instead of `127.0.0.1`.
-
-### Build and run
-
-From the repository root, build and start the Compose infrastructure:
+**1. Clone the repository**
 
 ```bash
-docker compose --env-file srcs/.env -f srcs/docker-compose.yml up -d --build
+git clone <repository-url>
+cd Inception_42
 ```
 
-Check the status of the services:
+**2. Create the environment file**
+
+Create `srcs/.env` and define the variables required by your Compose file and service configuration.
+
+Example:
+
+```env
+DOMAIN_NAME=hacharka.42.fr
+
+MYSQL_DATABASE=wordpress
+MYSQL_USER=wpuser
+
+WP_TITLE=Inception
+WP_ADMIN_USER=hacharka_boss
+WP_ADMIN_EMAIL=you@example.com
+WP_USER=editor
+WP_USER_EMAIL=editor@example.com
+
+FTP_USER=ftpuser
+```
+
+Use the exact variable names expected by your configuration files.
+
+**3. Configure Docker secrets**
+
+Create the required credential files inside `srcs/secrets/` and provide the appropriate passwords.
+
+Do not commit real credentials to Git.
+
+**4. Configure the domain**
+
+Add the following entry to `/etc/hosts` on the host machine:
+
+```text
+127.0.0.1 hacharka.42.fr
+```
+
+If Docker runs inside a virtual machine or remote environment, use the appropriate reachable IP address instead.
+
+## Usage
+
+All infrastructure operations are managed through the Makefile.
+
+### Build and Start
+
+From the repository root, run:
 
 ```bash
-docker compose --env-file srcs/.env -f srcs/docker-compose.yml ps
+make
 ```
 
-Follow the logs:
+This builds the Docker images, creates the required data directories under `/home/hacharka/data`, and starts all services in detached mode.
+
+You can also use:
 
 ```bash
-docker compose --env-file srcs/.env -f srcs/docker-compose.yml logs -f
+make up
 ```
 
-Open the website in a browser:
+### Build Docker Images
+
+To build the images without starting the containers:
+
+```bash
+make build
+```
+
+### Check Services
+
+To check the status of the running containers:
+
+```bash
+docker compose -f srcs/docker-compose.yml ps
+```
+
+### Follow Logs
+
+To follow the logs of all services:
+
+```bash
+docker compose -f srcs/docker-compose.yml logs -f
+```
+
+To inspect a specific service:
+
+```bash
+docker compose -f srcs/docker-compose.yml logs nginx
+docker compose -f srcs/docker-compose.yml logs wordpress
+docker compose -f srcs/docker-compose.yml logs mariadb
+```
+
+### Access the Website
+
+Open your browser and navigate to:
 
 ```text
 https://hacharka.42.fr
 ```
 
-The project uses HTTPS. If the Nginx certificate is self-signed, the browser may display a security warning during local testing.
+The project uses HTTPS with a self-signed SSL certificate. Your browser may display a security warning during local testing.
 
-To stop the services without deleting persistent data:
+### Stop and Clean the Infrastructure
 
-```bash
-docker compose --env-file srcs/.env -f srcs/docker-compose.yml down
-```
-
-To rebuild after changing a Dockerfile or service configuration:
+**Stop containers and remove Compose resources:**
 
 ```bash
-docker compose --env-file srcs/.env -f srcs/docker-compose.yml up -d --build
+make down
 ```
 
-To inspect a specific service's logs:
+This also removes named Docker volumes because the Makefile uses `docker compose down -v`. However, your bind-mounted data directories remain intact.
+
+**Remove unused Docker resources:**
 
 ```bash
-docker compose --env-file srcs/.env -f srcs/docker-compose.yml logs -f nginx
-docker compose --env-file srcs/.env -f srcs/docker-compose.yml logs -f wordpress
-docker compose --env-file srcs/.env -f srcs/docker-compose.yml logs -f mariadb
+make clean
 ```
 
-> **Data warning:** `docker compose down` normally keeps named volumes. Avoid `docker compose down -v` and avoid deleting the host data directories unless you intentionally want to erase persistent application/database data. Review the Makefile before using cleanup targets, because some cleanup commands may remove stored data.
+This runs `make down` followed by `docker system prune -a --force`.
 
-### Useful commands
+**Complete cleanup:**
+
+```bash
+make fclean
+```
+
+This removes unused Docker resources, prunes unused volumes, and deletes the WordPress and MariaDB data directories under `/home/hacharka/data`.
+
+**Rebuild the entire infrastructure:**
+
+```bash
+make re
+```
+
+This performs a complete cleanup followed by a fresh build and startup.
+
+**Warning:** `make fclean` permanently deletes your WordPress files and MariaDB database. Use it only when you intentionally want to reset the project.
+
+## Stopping and Cleaning
+
+The Makefile provides several commands to manage the infrastructure.
+
+| Command | Description |
+|---|---|
+| `make` | Build and start the infrastructure. |
+| `make up` | Build and start the containers. |
+| `make build` | Build Docker images without starting containers. |
+| `make down` | Stop containers and remove Compose resources and named volumes. |
+| `make clean` | Run `make down` and remove unused Docker images and resources. |
+| `make fclean` | Complete cleanup, including persistent host data directories. |
+| `make re` | Perform a complete cleanup followed by a fresh build and startup. |
+
+**Important data warning:**
+
+This project uses bind mounts for WordPress and MariaDB data.
+
+- `make down` removes containers, networks, and named Docker volumes, but preserves the bind-mounted host directories.
+- `make clean` additionally runs Docker system prune.
+- `make fclean` deletes the WordPress and MariaDB host data directories under `/home/hacharka/data`.
+
+**Warning:** `make fclean` permanently deletes your website and database data. Use it only when you intentionally want a fresh installation.
+
+## Useful Docker Commands
 
 ```bash
 # List running containers
 docker ps
 
-# List images
+# List Docker images
 docker images
 
 # List Docker networks
@@ -302,15 +376,21 @@ docker volume ls
 # Inspect a container
 docker inspect <container_name>
 
-# Open a shell in a running container
+# Open a shell inside a running container
 docker exec -it <container_name> sh
 ```
+
+## Documentation
+
+For more information about the project:
+
+- `USER_DOC.md`: Instructions for using and managing the infrastructure.
+- `DEV_DOC.md`: Technical information about the implementation and development choices.
 
 ## Resources
 
 ### Official documentation
 
-- [42 Inception subject](https://cdn.intra.42.fr/pdf/pdf/ project-inception.pdf) — consult the subject provided by your 42 campus for the authoritative requirements.
 - [Docker documentation](https://docs.docker.com/)
 - [Docker Compose documentation](https://docs.docker.com/compose/)
 - [Dockerfile reference](https://docs.docker.com/reference/dockerfile/)

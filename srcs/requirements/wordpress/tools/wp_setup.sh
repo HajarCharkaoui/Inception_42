@@ -4,7 +4,6 @@ set -eu
 MYSQL_PASSWORD=$(cat /run/secrets/db_password | tr -d '\r\n')
 WP_ADMIN_PASSWORD=$(cat /run/secrets/wp_admin_password | tr -d '\r\n')
 WP_USER_PASSWORD=$(cat /run/secrets/wp_user_password | tr -d '\r\n')
-cd /var/www/html
 
 if [ ! -f "wp-config.php" ]; then
     echo "Downloading and configuring WordPress..."
